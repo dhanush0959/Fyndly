@@ -1,0 +1,10 @@
+node_modules/
+uploads/*.jpg
+uploads/*.png
+uploads/*.jpeg
+uploads/lost/*
+uploads/found/*
+!uploads/.gitkeep
+*.log
+.env
+config/google-vision-key.json
