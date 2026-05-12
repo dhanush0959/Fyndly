@@ -1,6 +1,7 @@
+'use client';
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import ThemeToggle from './ThemeToggle';
+import { useRouter } from 'next/navigation';
+
 import './styles/LostForm.css';
 
 function LostForm() {
@@ -10,7 +11,7 @@ function LostForm() {
     location: '',
     image: null
   });
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const handleChange = (e) => {
     setFormData({
@@ -42,7 +43,7 @@ function LostForm() {
     const token = localStorage.getItem('token');
     if (!token) {
       alert('Please login first');
-      navigate('/');
+      router.push('/');
       return;
     }
 
@@ -55,7 +56,7 @@ function LostForm() {
       formDataObj.append('dateLost', new Date().toISOString().split('T')[0]);
       formDataObj.append('image', formData.image);
 
-      const response = await fetch('http://localhost:5000/api/items/lost', {
+      const response = await fetch('/api/items/lost', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -66,11 +67,15 @@ function LostForm() {
       const data = await response.json();
       
       if (response.ok && data.success) {
+        const detected = data.item.detectedObjects || data.item.detected_objects || [];
         const matchMsg = data.matchesFound > 0 
           ? `Found ${data.matchesFound} potential match(es)!` 
           : 'No matches found yet.';
-        alert(`Lost item reported successfully!\n${matchMsg}\n\nDetected objects: ${data.item.detectedObjects.slice(0, 5).map(o => o.description || o.name).join(', ')}`);
-        navigate('/gallery');
+        const objectsMsg = detected.length > 0 
+          ? `\n\nDetected objects: ${detected.slice(0, 5).map(o => o.description || o.name).join(', ')}`
+          : '';
+        alert(`Lost item reported successfully!\n${matchMsg}${objectsMsg}`);
+        router.push('/gallery');
       } else {
         alert(data.error || 'Failed to submit item. Please try again.');
       }
@@ -86,16 +91,16 @@ function LostForm() {
         <div className="nav-brand">The Grandview</div>
         <div className="nav-links">
           <span>Welcome to The Grandview</span>
-          <ThemeToggle />
-          <span onClick={() => navigate('/dashboard')}>Home</span>
+
+          <span onClick={() => router.push('/dashboard')}>Home</span>
         </div>
       </nav>
 
       <div className="form-container">
         <div className="tab-navigation">
           <button className="tab-btn active">Report a Lost Item</button>
-          <button className="tab-btn" onClick={() => navigate('/report-found')}>Report a Found Item</button>
-          <button className="tab-btn" onClick={() => navigate('/gallery')}>View Lost Items</button>
+          <button className="tab-btn" onClick={() => router.push('/report-found')}>Report a Found Item</button>
+          <button className="tab-btn" onClick={() => router.push('/gallery')}>View Lost Items</button>
         </div>
 
         <div className="form-box">
@@ -144,6 +149,7 @@ function LostForm() {
                 accept="image/*"
                 className="file-input"
               />
+              {formData.image && <p style={{marginTop: '0.5rem', fontSize: '0.9rem', color: 'var(--primary-color)'}}>Selected: {formData.image.name}</p>}
             </div>
 
             <button type="submit" className="btn-submit">Report Lost Item</button>

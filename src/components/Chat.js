@@ -1,6 +1,7 @@
+'use client';
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import ThemeToggle from './ThemeToggle';
+import { useRouter } from 'next/navigation';
+
 import './styles/Chat.css';
 
 function Chat() {
@@ -10,40 +11,12 @@ function Chat() {
   const [newMessage, setNewMessage] = useState('');
   const [currentUserId, setCurrentUserId] = useState(null);
   const messagesEndRef = useRef(null);
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      navigate('/');
-      return;
-    }
-
-    // Get current user ID from token (you might want to store this)
-    fetchConversations();
-    
-    // Poll for new messages every 3 seconds
-    const interval = setInterval(() => {
-      if (selectedConversation) {
-        fetchMessages(selectedConversation.other_user_id);
-      }
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [selectedConversation, navigate]);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+  const router = useRouter();
 
   const fetchConversations = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/chat/conversations', {
+      const response = await fetch('/api/chat/conversations', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -60,7 +33,7 @@ function Chat() {
   const fetchMessages = async (otherUserId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/chat/messages/${otherUserId}`, {
+      const response = await fetch(`/api/chat/messages/${otherUserId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -74,6 +47,36 @@ function Chat() {
     }
   };
 
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      router.push('/');
+      return;
+    }
+
+    // Get current user ID from token (you might want to store this)
+    // eslint-disable-next-line
+    fetchConversations();
+    
+    // Poll for new messages every 3 seconds
+    const interval = setInterval(() => {
+      if (selectedConversation) {
+        fetchMessages(selectedConversation.other_user_id);
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [selectedConversation, router]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+
   const handleSelectConversation = (conversation) => {
     setSelectedConversation(conversation);
     fetchMessages(conversation.other_user_id);
@@ -86,7 +89,7 @@ function Chat() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/chat/send', {
+      const response = await fetch('/api/chat/send', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -111,7 +114,7 @@ function Chat() {
 
   const handleLogout = () => {
     localStorage.clear();
-    navigate('/');
+    router.push('/');
   };
 
   return (
@@ -119,9 +122,9 @@ function Chat() {
       <nav className="top-navbar">
         <div className="nav-brand">The Grandview</div>
         <div className="nav-links">
-          <span onClick={() => navigate('/dashboard')}>Dashboard</span>
+          <span onClick={() => router.push('/dashboard')}>Dashboard</span>
           <span className="active">Messages</span>
-          <ThemeToggle />
+
           <span onClick={handleLogout} className="logout-btn">Logout</span>
         </div>
       </nav>

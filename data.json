@@ -1,0 +1,136 @@
+{
+  "lostItems": [
+    {
+      "id": "1778499803073",
+      "description": "Bike keys with a Tom and Jerry keychain",
+      "category": "Electronics",
+      "imageUrl": null,
+      "email": "loser@test.com",
+      "dateReported": "2026-05-11T11:43:23.073Z"
+    },
+    {
+      "id": "1778499866943",
+      "description": "Bike keys with a Tom and Jerry keychain",
+      "category": "Accessories",
+      "imageUrl": null,
+      "email": "loser@test.com",
+      "dateReported": "2026-05-11T11:44:26.943Z"
+    },
+    {
+      "id": "1778502082905",
+      "item_name": "Keys",
+      "description": "Tom and jerry keychain ",
+      "location": "Gym",
+      "image_url": "/uploads/1778502082903-lost-qhzkv_512.webp",
+      "email": "loser@example.com",
+      "created_at": "2026-05-11T12:21:22.905Z",
+      "detected_objects": []
+    },
+    {
+      "id": "1778502085927",
+      "item_name": "Keys",
+      "description": "Tom and jerry keychain ",
+      "location": "Gym",
+      "image_url": "/uploads/1778502085926-lost-qhzkv_512.webp",
+      "email": "loser@example.com",
+      "created_at": "2026-05-11T12:21:25.927Z",
+      "detected_objects": []
+    },
+    {
+      "id": "1778502542675",
+      "item_name": "Keys",
+      "description": "Tom and jerry keychain ",
+      "location": "Gym",
+      "image_url": "/uploads/1778502542674-lost-qhzkv_512.webp",
+      "email": "loser@example.com",
+      "created_at": "2026-05-11T12:29:02.675Z",
+      "detected_objects": []
+    }
+  ],
+  "foundItems": [
+    {
+      "id": "1778500155551",
+      "imageUrl": "/uploads/1778500153547-tom_jerry_keys.png",
+      "email": "finder@test.com",
+      "category": "Accessories",
+      "aiGeneratedDescription": "A set of metallic bike keys attached to a colorful Tom and Jerry character keychain.",
+      "keywords": [
+        "keys",
+        "bike",
+        "tom and jerry",
+        "keychain",
+        "metal",
+        "cartoon"
+      ],
+      "dateReported": "2026-05-11T11:49:15.551Z"
+    },
+    {
+      "id": "1778501456152",
+      "item_name": "Accessories",
+      "description": "A set of metallic bike keys attached to a colorful Tom and Jerry character keychain.",
+      "location": "Unknown",
+      "image_url": "/uploads/1778501454149-tom_jerry_keys.png",
+      "email": "finder@example.com",
+      "created_at": "2026-05-11T12:10:56.152Z",
+      "detected_objects": [
+        {
+          "name": "keys"
+        },
+        {
+          "name": "bike"
+        },
+        {
+          "name": "tom and jerry"
+        },
+        {
+          "name": "keychain"
+        },
+        {
+          "name": "metal"
+        },
+        {
+          "name": "cartoon"
+        }
+      ]
+    },
+    {
+      "id": "1778502561200",
+      "item_name": "Accessories",
+      "description": "A set of metallic bike keys attached to a colorful Tom and Jerry character keychain.",
+      "location": "Gym",
+      "image_url": "/uploads/1778502559198-download.jpg",
+      "email": "finder@example.com",
+      "created_at": "2026-05-11T12:29:21.200Z",
+      "detected_objects": [
+        {
+          "name": "keys"
+        },
+        {
+          "name": "bike"
+        },
+        {
+          "name": "tom and jerry"
+        },
+        {
+          "name": "keychain"
+        },
+        {
+          "name": "metal"
+        },
+        {
+          "name": "cartoon"
+        }
+      ]
+    }
+  ],
+  "matches": [
+    {
+      "id": "match_1778500157060",
+      "lostItemId": "1778499866943",
+      "foundItemId": "1778500155551",
+      "confidence": 0.95,
+      "reasoning": "The found image clearly shows bike keys with a Tom and Jerry keychain, perfectly matching the user's lost item description.",
+      "dateMatched": "2026-05-11T11:49:17.060Z"
+    }
+  ]
+}

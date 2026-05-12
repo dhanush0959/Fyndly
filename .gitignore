@@ -1,38 +1,41 @@
-# Dependencies
-node_modules/
-/.pnp
-.pnp.js
-backend/node_modules/
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# Testing
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
 /coverage
 
-# Production
+# next.js
+/.next/
+/out/
+
+# production
 /build
 
-# Misc
+# misc
 .DS_Store
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+*.pem
 
+# debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+.pnpm-debug.log*
 
-# Editor
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
+# env files (can opt-in for committing if needed)
+.env*
 
-# Backend specific
-backend/.env
-backend/uploads/
-backend/config/google-vision-key.json
+# vercel
+.vercel
 
-# Output
-output/
+# typescript
+*.tsbuildinfo
+next-env.d.ts

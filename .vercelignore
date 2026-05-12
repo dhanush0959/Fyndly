@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Local uploads (not needed on Vercel)
+backend/uploads/
+
+# Output/build (Vercel builds fresh)
+build/
+output/
+
+# Config files with secrets
+backend/config/google-vision-key.json
+.env
+.env.local
+
+# Misc
+.DS_Store

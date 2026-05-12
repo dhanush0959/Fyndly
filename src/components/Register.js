@@ -1,5 +1,6 @@
+'use client';
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import './styles/Register.css';
 
 function Register() {
@@ -8,7 +9,7 @@ function Register() {
     email: '',
     password: ''
   });
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const handleChange = (e) => {
     setFormData({
@@ -26,7 +27,7 @@ function Register() {
     }
 
     try {
-      const response = await fetch('http://localhost:5000/api/auth/register', {
+      const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -38,7 +39,7 @@ function Register() {
       
       if (response.ok && data.success) {
         alert('Registration successful! Please login.');
-        navigate('/');
+        router.push('/');
       } else {
         alert(data.error || 'Registration failed. Please try again.');
       }
@@ -53,8 +54,8 @@ function Register() {
       <nav className="top-navbar">
         <div className="nav-brand">The Grandview</div>
         <div className="nav-links">
-          <span onClick={() => navigate('/')}>Home</span>
-          <span onClick={() => navigate('/')}>Resident Login</span>
+          <span onClick={() => router.push('/')}>Home</span>
+          <span onClick={() => router.push('/')}>Resident Login</span>
           <span className="active">Register</span>
         </div>
       </nav>
@@ -105,7 +106,7 @@ function Register() {
           </form>
           
           <p className="login-link">
-            Already have an account? <span onClick={() => navigate('/')}>Login here</span>
+            Already have an account? <span onClick={() => router.push('/')}>Login here</span>
           </p>
         </div>
       </div>

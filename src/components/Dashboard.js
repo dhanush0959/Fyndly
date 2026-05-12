@@ -1,6 +1,7 @@
+'use client';
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import ThemeToggle from './ThemeToggle';
+import { useRouter } from 'next/navigation';
+
 import './styles/Dashboard.css';
 
 function Dashboard() {
@@ -10,28 +11,13 @@ function Dashboard() {
     foundItems: 0,
     recentMatches: 0
   });
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    // Check if user is logged in
-    const userLoggedIn = localStorage.getItem('userLoggedIn');
-    if (!userLoggedIn) {
-      navigate('/');
-      return;
-    }
-
-    const name = localStorage.getItem('userName') || 'User';
-    setUserName(name);
-
-    // Fetch stats
-    loadStats();
-  }, [navigate]);
+  const router = useRouter();
 
   const loadStats = async () => {
     try {
       const [lostRes, foundRes] = await Promise.all([
-        fetch('http://localhost:5000/api/items/lost'),
-        fetch('http://localhost:5000/api/items/found')
+        fetch('/api/items/lost'),
+        fetch('/api/items/found')
       ]);
 
       const lostData = await lostRes.json();
@@ -47,12 +33,29 @@ function Dashboard() {
     }
   };
 
+  useEffect(() => {
+    // Check if user is logged in
+    const userLoggedIn = localStorage.getItem('userLoggedIn');
+    if (!userLoggedIn) {
+      router.push('/');
+      return;
+    }
+
+    const name = localStorage.getItem('userName') || 'User';
+    // eslint-disable-next-line
+    setUserName(name);
+
+    // Fetch stats
+    loadStats();
+  }, [router]);
+
+
   const handleLogout = () => {
     localStorage.removeItem('userLoggedIn');
     localStorage.removeItem('userEmail');
     localStorage.removeItem('userName');
     localStorage.removeItem('token');
-    navigate('/');
+    router.push('/');
   };
 
   return (
@@ -61,8 +64,8 @@ function Dashboard() {
         <div className="nav-brand">The Grandview</div>
         <div className="nav-links">
           <span className="active">Dashboard</span>
-          <span onClick={() => navigate('/chat')}>Messages</span>
-          <ThemeToggle />
+          <span onClick={() => router.push('/chat')}>Messages</span>
+
           <span onClick={handleLogout} className="logout-btn">Logout</span>
         </div>
       </nav>
@@ -92,21 +95,21 @@ function Dashboard() {
         </div>
 
         <div className="action-cards">
-          <div className="action-card lost-card" onClick={() => navigate('/report-lost')}>
+          <div className="action-card lost-card" onClick={() => router.push('/report-lost')}>
             <div className="action-icon">📢</div>
             <h2>Report a Lost Item</h2>
             <p>Lost something? Report it here and our AI will search for matches.</p>
             <button className="action-btn lost-btn">Report Lost Item</button>
           </div>
 
-          <div className="action-card found-card" onClick={() => navigate('/report-found')}>
+          <div className="action-card found-card" onClick={() => router.push('/report-found')}>
             <div className="action-icon">🎉</div>
             <h2>Report a Found Item</h2>
             <p>Found something? Help it find its owner with AI-powered matching.</p>
             <button className="action-btn found-btn">Report Found Item</button>
           </div>
 
-          <div className="action-card gallery-card" onClick={() => navigate('/gallery')}>
+          <div className="action-card gallery-card" onClick={() => router.push('/gallery')}>
             <div className="action-icon">🖼️</div>
             <h2>View Lost Items Gallery</h2>
             <p>Browse all currently reported lost items in the community.</p>
