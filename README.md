@@ -2,7 +2,6 @@
 
 **An AI-Powered Lost & Found Platform** designed for modern communities, residential buildings, and campuses. Fyndly removes the friction from reporting lost items by leveraging Vision AI to automatically analyze uploaded images, generate detailed descriptions, and seamlessly connect "finders" with "losers" in real-time.
 
-![Fyndly Banner](public/emerald_bg.png)
 
 ## ✨ Key Features
 
