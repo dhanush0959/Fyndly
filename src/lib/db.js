@@ -1,21 +1,47 @@
-import fs from 'fs';
-import path from 'path';
+import mongoose from 'mongoose';
 
-const DB_FILE = path.join(process.cwd(), 'data.json');
+const MONGODB_URI = process.env.MONGODB_URI;
 
-// Initialize DB file if it doesn't exist
-function initDB() {
-  if (!fs.existsSync(DB_FILE)) {
-    fs.writeFileSync(DB_FILE, JSON.stringify({ lostItems: [], foundItems: [], matches: [] }, null, 2));
+// Defer the error to runtime so Next.js build-time analysis can complete
+// (env vars are not available during `next build` static page collection)
+if (!MONGODB_URI) {
+  console.warn(
+    '[Fyndly] MONGODB_URI is not defined. Set it in .env.local before starting the server.'
+  );
+}
+
+/**
+ * Global cache to prevent multiple connections in Next.js dev mode (hot reload).
+ * In production, each serverless function instance maintains one connection.
+ */
+let cached = global.mongoose;
+
+if (!cached) {
+  cached = global.mongoose = { conn: null, promise: null };
+}
+
+async function connectDB() {
+  if (cached.conn) {
+    return cached.conn;
   }
+
+  if (!cached.promise) {
+    const opts = {
+      bufferCommands: false,
+    };
+    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
+      return mongoose;
+    });
+  }
+
+  try {
+    cached.conn = await cached.promise;
+  } catch (e) {
+    cached.promise = null;
+    throw e;
+  }
+
+  return cached.conn;
 }
 
-export function readDB() {
-  initDB();
-  const data = fs.readFileSync(DB_FILE, 'utf-8');
-  return JSON.parse(data);
-}
-
-export function writeDB(data) {
-  fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
-}
+export default connectDB;

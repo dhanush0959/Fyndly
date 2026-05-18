@@ -11,44 +11,38 @@ function LostForm() {
     location: '',
     image: null
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
   const router = useRouter();
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setErrorMsg('');
   };
 
   const handleFileChange = (e) => {
-    setFormData({
-      ...formData,
-      image: e.target.files[0]
-    });
+    setFormData({ ...formData, image: e.target.files[0] });
+    setErrorMsg('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+    setErrorMsg('');
+    setSuccessMsg('');
+
     if (!formData.itemName || !formData.description || !formData.location) {
-      alert('Please fill in all required fields');
+      setErrorMsg('Please fill in all required fields.');
       return;
     }
-
     if (!formData.image) {
-      alert('Please upload an image of the item');
+      setErrorMsg('Please upload an image of the item.');
       return;
     }
 
-    const token = localStorage.getItem('token');
-    if (!token) {
-      alert('Please login first');
-      router.push('/');
-      return;
-    }
+    setIsSubmitting(true);
 
     try {
-      // Create FormData for file upload
       const formDataObj = new FormData();
       formDataObj.append('itemName', formData.itemName);
       formDataObj.append('description', formData.description);
@@ -58,41 +52,31 @@ function LostForm() {
 
       const response = await fetch('/api/items/lost', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
         body: formDataObj
       });
 
       const data = await response.json();
-      
+
       if (response.ok && data.success) {
-        const detected = data.item.detectedObjects || data.item.detected_objects || [];
-        const matchMsg = data.matchesFound > 0 
-          ? `Found ${data.matchesFound} potential match(es)!` 
-          : 'No matches found yet.';
-        const objectsMsg = detected.length > 0 
-          ? `\n\nDetected objects: ${detected.slice(0, 5).map(o => o.description || o.name).join(', ')}`
-          : '';
-        alert(`Lost item reported successfully!\n${matchMsg}${objectsMsg}`);
-        router.push('/gallery');
+        setSuccessMsg('✅ Lost item reported successfully! Redirecting to gallery...');
+        setTimeout(() => router.push('/gallery'), 1800);
       } else {
-        alert(data.error || 'Failed to submit item. Please try again.');
+        setErrorMsg(data.error || 'Failed to submit item. Please try again.');
       }
     } catch (error) {
       console.error('Submit error:', error);
-      alert('Connection error. Please make sure the backend server is running.');
+      setErrorMsg('Connection error. Please check your internet and try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
     <div className="form-page">
       <nav className="top-navbar">
-        <div className="nav-brand">The Grandview</div>
+        <div className="nav-brand">Fyndly</div>
         <div className="nav-links">
-          <span>Welcome to The Grandview</span>
-
-          <span onClick={() => router.push('/dashboard')}>Home</span>
+          <span onClick={() => router.push('/dashboard')}>Dashboard</span>
         </div>
       </nav>
 
@@ -105,38 +89,63 @@ function LostForm() {
 
         <div className="form-box">
           <h2>Report a Lost Item</h2>
-          <p className="form-subtitle">Provide details about the item you lost within the premises. More detail improves match accuracy.</p>
-          
+          <p className="form-subtitle">Provide details about the item you lost. More detail improves AI match accuracy.</p>
+
+          {/* Error message */}
+          {errorMsg && (
+            <div style={{
+              background: '#FEF2F2', border: '1px solid #FECACA', color: '#DC2626',
+              padding: '0.75rem 1rem', borderRadius: '10px', marginBottom: '1.25rem',
+              fontSize: '0.875rem', fontWeight: 500
+            }}>
+              {errorMsg}
+            </div>
+          )}
+
+          {/* Success message */}
+          {successMsg && (
+            <div style={{
+              background: '#F0FDF4', border: '1px solid #BBF7D0', color: '#15803D',
+              padding: '0.75rem 1rem', borderRadius: '10px', marginBottom: '1.25rem',
+              fontSize: '0.875rem', fontWeight: 500
+            }}>
+              {successMsg}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit}>
             <div className="form-group">
-              <label>Item Name</label>
+              <label>Item Name *</label>
               <input
                 type="text"
                 name="itemName"
                 value={formData.itemName}
                 onChange={handleChange}
-                required
-              />
-            </div>
-            
-            <div className="form-group">
-              <label>Description (color, brand, etc.)</label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                rows="4"
+                placeholder="e.g., Black Wallet, iPhone 14, Car Keys"
                 required
               />
             </div>
 
             <div className="form-group">
-              <label>Last Seen Location (e.g., Lobby, Gym, Parking P2)</label>
+              <label>Description (color, brand, markings, etc.) *</label>
+              <textarea
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                rows="4"
+                placeholder="Describe the item in detail — color, brand, size, any distinguishing marks..."
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Last Seen Location *</label>
               <input
                 type="text"
                 name="location"
                 value={formData.location}
                 onChange={handleChange}
+                placeholder="e.g., Lobby, Gym, Parking P2, Cafeteria"
                 required
               />
             </div>
@@ -149,17 +158,22 @@ function LostForm() {
                 accept="image/*"
                 className="file-input"
               />
-              {formData.image && <p style={{marginTop: '0.5rem', fontSize: '0.9rem', color: 'var(--primary-color)'}}>Selected: {formData.image.name}</p>}
+              {formData.image && (
+                <p style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: '#0D9488', fontWeight: 500 }}>
+                  ✓ Selected: {formData.image.name}
+                </p>
+              )}
             </div>
 
-            <button type="submit" className="btn-submit">Report Lost Item</button>
+            <button type="submit" className="btn-submit" disabled={isSubmitting}>
+              {isSubmitting ? '⏳ Submitting...' : 'Report Lost Item'}
+            </button>
           </form>
         </div>
       </div>
 
       <footer className="form-footer">
-        <p>© 2025 The Grandview Residences</p>
-        <p>For urgent matters, please contact the front desk at 9505640179.</p>
+        <p>© 2025 Fyndly · AI-Powered Lost &amp; Found Platform</p>
       </footer>
     </div>
   );

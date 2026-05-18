@@ -1,26 +1,28 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
+import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
 import './styles/Chat.css';
 
 function Chat() {
+  const { data: session, status } = useSession();
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
-  const [currentUserId, setCurrentUserId] = useState(null);
   const messagesEndRef = useRef(null);
   const router = useRouter();
 
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/');
+    }
+  }, [status, router]);
+
   const fetchConversations = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/chat/conversations', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await fetch('/api/chat/conversations');
       const data = await response.json();
       if (data.success) {
         setConversations(data.conversations);
@@ -32,12 +34,7 @@ function Chat() {
 
   const fetchMessages = async (otherUserId) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/chat/messages/${otherUserId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await fetch(`/api/chat/messages/${otherUserId}`);
       const data = await response.json();
       if (data.success) {
         setMessages(data.messages);
@@ -48,25 +45,21 @@ function Chat() {
   };
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      router.push('/');
-      return;
-    }
+    if (status !== 'authenticated') return;
 
-    // Get current user ID from token (you might want to store this)
-    // eslint-disable-next-line
     fetchConversations();
-    
-    // Poll for new messages every 3 seconds
+
+    // Poll for new messages every 5 seconds
     const interval = setInterval(() => {
+      fetchConversations();
       if (selectedConversation) {
         fetchMessages(selectedConversation.other_user_id);
       }
-    }, 3000);
+    }, 5000);
 
     return () => clearInterval(interval);
-  }, [selectedConversation, router]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, selectedConversation]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -76,7 +69,6 @@ function Chat() {
     scrollToBottom();
   }, [messages]);
 
-
   const handleSelectConversation = (conversation) => {
     setSelectedConversation(conversation);
     fetchMessages(conversation.other_user_id);
@@ -84,47 +76,46 @@ function Chat() {
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    
     if (!newMessage.trim() || !selectedConversation) return;
 
     try {
-      const token = localStorage.getItem('token');
       const response = await fetch('/api/chat/send', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           receiverId: selectedConversation.other_user_id,
-          message: newMessage
-        })
+          message: newMessage,
+        }),
       });
 
       const data = await response.json();
       if (data.success) {
-        setMessages([...messages, data.message]);
+        setMessages((prev) => [...prev, data.message]);
         setNewMessage('');
-        fetchConversations(); // Refresh conversation list
+        fetchConversations();
       }
     } catch (error) {
       console.error('Send message error:', error);
     }
   };
 
-  const handleLogout = () => {
-    localStorage.clear();
-    router.push('/');
+  const handleLogout = async () => {
+    await signOut({ callbackUrl: '/' });
   };
+
+  if (status === 'loading' || status === 'unauthenticated') {
+    return null;
+  }
+
+  const currentUserId = session?.user?.id;
 
   return (
     <div className="chat-page">
       <nav className="top-navbar">
-        <div className="nav-brand">The Grandview</div>
+        <div className="nav-brand">Fyndly</div>
         <div className="nav-links">
           <span onClick={() => router.push('/dashboard')}>Dashboard</span>
           <span className="active">Messages</span>
-
           <span onClick={handleLogout} className="logout-btn">Logout</span>
         </div>
       </nav>
@@ -139,7 +130,7 @@ function Chat() {
                 <p className="hint">Start chatting when you find a match!</p>
               </div>
             ) : (
-              conversations.map(conv => (
+              conversations.map((conv) => (
                 <div
                   key={conv.id}
                   className={`conversation-item ${selectedConversation?.id === conv.id ? 'active' : ''}`}
@@ -177,7 +168,7 @@ function Chat() {
               </div>
 
               <div className="messages-container">
-                {messages.map(msg => (
+                {messages.map((msg) => (
                   <div
                     key={msg.id}
                     className={`message ${msg.sender_id === currentUserId ? 'sent' : 'received'}`}
@@ -185,9 +176,9 @@ function Chat() {
                     <div className="message-content">
                       <p>{msg.message}</p>
                       <span className="message-time">
-                        {new Date(msg.created_at).toLocaleTimeString([], { 
-                          hour: '2-digit', 
-                          minute: '2-digit' 
+                        {new Date(msg.created_at).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit',
                         })}
                       </span>
                     </div>
@@ -203,6 +194,7 @@ function Chat() {
                   onChange={(e) => setNewMessage(e.target.value)}
                   placeholder="Type a message..."
                   className="message-input"
+                  maxLength={2000}
                 />
                 <button type="submit" className="send-btn">
                   Send

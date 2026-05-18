@@ -1,71 +1,64 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
 import './styles/Dashboard.css';
 
 function Dashboard() {
-  const [userName, setUserName] = useState('');
-  const [stats, setStats] = useState({
-    lostItems: 0,
-    foundItems: 0,
-    recentMatches: 0
-  });
+  const { data: session, status } = useSession();
+  const [stats, setStats] = useState({ lostItems: 0, foundItems: 0, recentMatches: 0 });
   const router = useRouter();
 
-  const loadStats = async () => {
-    try {
-      const [lostRes, foundRes] = await Promise.all([
-        fetch('/api/items/lost'),
-        fetch('/api/items/found')
-      ]);
-
-      const lostData = await lostRes.json();
-      const foundData = await foundRes.json();
-
-      setStats({
-        lostItems: lostData.items?.length || 0,
-        foundItems: foundData.items?.length || 0,
-        recentMatches: 0 // Can add matches endpoint later
-      });
-    } catch (error) {
-      console.error('Error loading stats:', error);
+  useEffect(() => {
+    // Redirect unauthenticated users to login
+    if (status === 'unauthenticated') {
+      router.push('/');
     }
-  };
+  }, [status, router]);
 
   useEffect(() => {
-    // Check if user is logged in
-    const userLoggedIn = localStorage.getItem('userLoggedIn');
-    if (!userLoggedIn) {
-      router.push('/');
-      return;
-    }
+    if (status !== 'authenticated') return;
 
-    const name = localStorage.getItem('userName') || 'User';
-    // eslint-disable-next-line
-    setUserName(name);
+    const loadStats = async () => {
+      try {
+        const [lostRes, foundRes] = await Promise.all([
+          fetch('/api/items/lost'),
+          fetch('/api/items/found'),
+        ]);
+        const lostData = await lostRes.json();
+        const foundData = await foundRes.json();
+        setStats({
+          lostItems: lostData.items?.length || 0,
+          foundItems: foundData.items?.length || 0,
+          recentMatches: 0,
+        });
+      } catch (error) {
+        console.error('Error loading stats:', error);
+      }
+    };
 
-    // Fetch stats
     loadStats();
-  }, [router]);
+  }, [status]);
 
-
-  const handleLogout = () => {
-    localStorage.removeItem('userLoggedIn');
-    localStorage.removeItem('userEmail');
-    localStorage.removeItem('userName');
-    localStorage.removeItem('token');
-    router.push('/');
+  const handleLogout = async () => {
+    await signOut({ callbackUrl: '/' });
   };
+
+  // Show nothing while session is loading
+  if (status === 'loading' || status === 'unauthenticated') {
+    return null;
+  }
+
+  const userName = session?.user?.name || 'User';
 
   return (
     <div className="dashboard-page">
       <nav className="top-navbar">
-        <div className="nav-brand">The Grandview</div>
+        <div className="nav-brand">Fyndly</div>
         <div className="nav-links">
           <span className="active">Dashboard</span>
           <span onClick={() => router.push('/chat')}>Messages</span>
-
           <span onClick={handleLogout} className="logout-btn">Logout</span>
         </div>
       </nav>
@@ -73,7 +66,7 @@ function Dashboard() {
       <div className="dashboard-container">
         <div className="welcome-section">
           <h1>Welcome back, {userName}! 👋</h1>
-          <p className="subtitle">Your community portal</p>
+          <p className="subtitle">Your AI-powered lost &amp; found dashboard</p>
         </div>
 
         <div className="stats-cards">
@@ -153,8 +146,8 @@ function Dashboard() {
       </div>
 
       <footer className="dashboard-footer">
-        <p>© 2025 The Grandview Residences</p>
-        <p>For urgent matters, please contact the front desk at 9505640179.</p>
+        <p>© 2025 Fyndly</p>
+        <p>AI-Powered Lost &amp; Found Platform</p>
       </footer>
     </div>
   );
