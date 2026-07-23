@@ -43,12 +43,22 @@ export async function POST(request) {
       }
 
       const buffer = Buffer.from(await file.arrayBuffer());
-      const ext = path.extname(file.name).toLowerCase() || '.jpg';
-      const filename = `${Date.now()}-lost-${session.user.id}${ext}`;
-      const uploadDir = path.join(process.cwd(), 'public', 'uploads');
-      if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-      fs.writeFileSync(path.join(uploadDir, filename), buffer);
-      imageUrl = `/uploads/${filename}`;
+      const mimeType = file.type || 'image/jpeg';
+      const base64Data = buffer.toString('base64');
+      const dataUri = `data:${mimeType};base64,${base64Data}`;
+
+      imageUrl = dataUri;
+      try {
+        const ext = path.extname(file.name).toLowerCase() || '.jpg';
+        const filename = `${Date.now()}-lost-${session.user.id}${ext}`;
+        const uploadDir = path.join(process.cwd(), 'public', 'uploads');
+        if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+        fs.writeFileSync(path.join(uploadDir, filename), buffer);
+        imageUrl = `/uploads/${filename}`;
+      } catch (fsError) {
+        console.warn('[API] Local disk write unavailable (Vercel serverless). Using Base64 Data URI.');
+      }
+
     }
 
     // --- Gemini AI: Compile Owner Profile (1 API call) ---

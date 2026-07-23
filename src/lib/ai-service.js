@@ -17,14 +17,29 @@ const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-flash-latest';
 
 
 
-// ─── Helper: Read a local image file and return as base64 inline data ───
+// ─── Helper: Read image file or Base64 Data URI and return inline data for Gemini ───
 function getImagePart(imagePath) {
-  // imagePath is like "/uploads/123-found-abc.jpg"
-  const absolutePath = path.join(process.cwd(), 'public', imagePath);
+  // Handle Base64 Data URIs (e.g., data:image/jpeg;base64,...) for Vercel serverless deployment
+  if (typeof imagePath === 'string' && imagePath.startsWith('data:image/')) {
+    const matches = imagePath.match(/^data:(image\/[a-zA-Z+]+);base64,(.+)$/);
+    if (matches) {
+      return {
+        inlineData: {
+          mimeType: matches[1],
+          data: matches[2],
+        },
+      };
+    }
+  }
+
+  // Handle local disk file path (local development)
+  const absolutePath = path.isAbsolute(imagePath)
+    ? imagePath
+    : path.join(process.cwd(), 'public', imagePath);
+
   const imageBuffer = fs.readFileSync(absolutePath);
   const base64 = imageBuffer.toString('base64');
 
-  // Determine MIME type from extension
   const ext = path.extname(imagePath).toLowerCase();
   const mimeMap = {
     '.jpg': 'image/jpeg',
@@ -42,6 +57,7 @@ function getImagePart(imagePath) {
     },
   };
 }
+
 
 // ─── Helper: Clean Gemini response to parse JSON ───
 function parseGeminiJSON(text) {

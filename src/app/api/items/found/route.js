@@ -32,14 +32,24 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Only JPEG, PNG, WebP, and GIF images are allowed' }, { status: 400 });
     }
 
-    // --- Save image locally ---
+    // --- Process image (Supports Vercel serverless + local development) ---
     const buffer = Buffer.from(await file.arrayBuffer());
-    const ext = path.extname(file.name).toLowerCase() || '.jpg';
-    const filename = `${Date.now()}-found-${session.user.id}${ext}`;
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads');
-    if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-    fs.writeFileSync(path.join(uploadDir, filename), buffer);
-    const imageUrl = `/uploads/${filename}`;
+    const mimeType = file.type || 'image/jpeg';
+    const base64Data = buffer.toString('base64');
+    const dataUri = `data:${mimeType};base64,${base64Data}`;
+
+    let imageUrl = dataUri;
+    try {
+      const ext = path.extname(file.name).toLowerCase() || '.jpg';
+      const filename = `${Date.now()}-found-${session.user.id}${ext}`;
+      const uploadDir = path.join(process.cwd(), 'public', 'uploads');
+      if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+      fs.writeFileSync(path.join(uploadDir, filename), buffer);
+      imageUrl = `/uploads/${filename}`;
+    } catch (fsError) {
+      console.warn('[API] Local disk write unavailable (Vercel serverless). Using Base64 Data URI.');
+    }
+
 
     // --- Gemini AI Analysis (1 API call) ---
     const aiAnalysis = await AIService.analyzeFoundItem(imageUrl);
