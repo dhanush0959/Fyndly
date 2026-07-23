@@ -9,9 +9,11 @@ function FoundForm() {
     location: '',
     image: null
   });
+  const [imagePreview, setImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [loadingStage, setLoadingStage] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
-  const [matchResult, setMatchResult] = useState(null);
+  const [result, setResult] = useState(null);
   const router = useRouter();
 
   const handleChange = (e) => {
@@ -20,8 +22,16 @@ function FoundForm() {
   };
 
   const handleFileChange = (e) => {
-    setFormData({ ...formData, image: e.target.files[0] });
+    const file = e.target.files[0];
+    setFormData({ ...formData, image: file });
     setErrorMsg('');
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => setImagePreview(ev.target.result);
+      reader.readAsDataURL(file);
+    } else {
+      setImagePreview(null);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -34,9 +44,15 @@ function FoundForm() {
     }
 
     setLoading(true);
-    setMatchResult(null);
+    setResult(null);
 
     try {
+      // Stage indicators for UX
+      setLoadingStage('📤 Uploading image...');
+      await new Promise(r => setTimeout(r, 500));
+
+      setLoadingStage('🤖 AI is analyzing the item (detecting objects, colors, brand, text)...');
+
       const formDataObj = new FormData();
       formDataObj.append('location', formData.location || 'Unknown');
       formDataObj.append('image', formData.image);
@@ -49,7 +65,7 @@ function FoundForm() {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        setMatchResult(data);
+        setResult(data);
       } else {
         setErrorMsg(data.error || 'Failed to submit item. Please try again.');
       }
@@ -58,6 +74,7 @@ function FoundForm() {
       setErrorMsg('Connection error. Please check your internet and try again.');
     } finally {
       setLoading(false);
+      setLoadingStage('');
     }
   };
 
@@ -77,10 +94,11 @@ function FoundForm() {
           <button className="tab-btn" onClick={() => router.push('/gallery')}>View Lost Items</button>
         </div>
 
-        <div className="form-box" style={{ maxWidth: '600px', margin: '0 auto' }}>
+        <div className="form-box" style={{ maxWidth: '650px', margin: '0 auto' }}>
           <h2>Report a Found Item</h2>
           <p className="form-subtitle">
-            Just upload an image! Our AI will automatically detect the object, generate a description, and search for matches.
+            Just upload a photo and select the location — our AI handles the rest!
+            It will automatically detect the object, generate a detailed description, and search for matches.
           </p>
 
           {/* Error message */}
@@ -94,8 +112,32 @@ function FoundForm() {
             </div>
           )}
 
-          {!matchResult ? (
+          {!result ? (
             <form onSubmit={handleSubmit}>
+              {/* Image Upload with Preview */}
+              <div className="form-group">
+                <label>Upload Image of the Found Item *</label>
+                <input
+                  type="file"
+                  onChange={handleFileChange}
+                  accept="image/*"
+                  className="file-input"
+                  required
+                />
+                {imagePreview && (
+                  <div style={{
+                    marginTop: '0.75rem', borderRadius: '12px', overflow: 'hidden',
+                    border: '2px solid #E2E8F0', maxHeight: '250px'
+                  }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={imagePreview} alt="Preview" style={{
+                      width: '100%', maxHeight: '250px', objectFit: 'cover'
+                    }} />
+                  </div>
+                )}
+              </div>
+
+              {/* Location Dropdown */}
               <div className="form-group">
                 <label>Where did you find it? (Optional)</label>
                 <select
@@ -119,66 +161,123 @@ function FoundForm() {
                 </select>
               </div>
 
-              <div className="form-group">
-                <label>Upload Image of the Found Item *</label>
-                <input
-                  type="file"
-                  onChange={handleFileChange}
-                  accept="image/*"
-                  className="file-input"
-                  required
-                />
-                {formData.image && (
-                  <p style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: '#0D9488', fontWeight: 500 }}>
-                    ✓ Selected: {formData.image.name}
-                  </p>
-                )}
-              </div>
-
               <button
                 type="submit"
                 className="btn-submit"
                 disabled={loading}
               >
-                {loading ? '🤖 AI is analyzing and matching...' : 'Analyze and Find Match'}
+                {loading ? loadingStage : '🔍 Analyze & Find Match'}
               </button>
+
+              {loading && (
+                <div style={{
+                  textAlign: 'center', marginTop: '1rem', padding: '1rem',
+                  background: '#F0FDF4', borderRadius: '10px', border: '1px solid #BBF7D0'
+                }}>
+                  <div style={{
+                    width: '2rem', height: '2rem', border: '3px solid #CCFBF1',
+                    borderTopColor: '#0D9488', borderRadius: '50%',
+                    animation: 'spin 0.8s linear infinite', margin: '0 auto 0.75rem'
+                  }} />
+                  <p style={{ fontSize: '0.85rem', color: '#0D9488', fontWeight: 500 }}>
+                    {loadingStage}
+                  </p>
+                  <p style={{ fontSize: '0.78rem', color: '#64748B', marginTop: '0.25rem' }}>
+                    This may take 10-20 seconds as Gemini analyzes the image...
+                  </p>
+                </div>
+              )}
             </form>
           ) : (
-            /* ── Match Result ── */
-            <div style={{ textAlign: 'center', padding: '1.5rem 0' }}>
-              <div style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>🎉</div>
-              <h3 style={{ color: '#0D9488', marginBottom: '1.5rem', fontSize: '1.25rem' }}>
-                Item Analyzed Successfully!
-              </h3>
+            /* ── Result Display ── */
+            <div style={{ padding: '0.5rem 0' }}>
+              <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+                <div style={{ fontSize: '3.5rem', marginBottom: '0.75rem' }}>🎉</div>
+                <h3 style={{ color: '#0D9488', fontSize: '1.25rem' }}>
+                  Item Analyzed Successfully!
+                </h3>
+              </div>
 
-              {/* AI result card */}
+              {/* AI Analysis Card */}
               <div style={{
                 background: '#F8FAFC', border: '1px solid #E2E8F0',
-                padding: '1.25rem', borderRadius: '12px', textAlign: 'left', marginBottom: '1.25rem'
+                padding: '1.25rem', borderRadius: '12px', marginBottom: '1.25rem'
               }}>
-                <p style={{ marginBottom: '0.5rem', fontSize: '0.9rem', color: '#334155' }}>
-                  <strong>🏷️ AI Detected Item:</strong> {matchResult.item?.item_name}
-                </p>
-                <p style={{ marginBottom: '0.5rem', fontSize: '0.9rem', color: '#334155' }}>
-                  <strong>📝 Description:</strong> {matchResult.item?.description}
-                </p>
-                {matchResult.item?.detected_objects?.length > 0 && (
-                  <p style={{ fontSize: '0.85rem', color: '#64748B' }}>
-                    <strong>🔍 Keywords:</strong> {matchResult.item.detected_objects.map(o => o.name).join(', ')}
+                <h4 style={{ color: '#0D9488', marginBottom: '0.75rem', fontSize: '0.95rem' }}>
+                  🤖 AI Detection Results
+                </h4>
+                <div style={{ display: 'grid', gap: '0.5rem', fontSize: '0.88rem', color: '#334155' }}>
+                  <p><strong>🏷️ Item Type:</strong> {result.item?.ai_analysis?.item_type || result.item?.item_name}</p>
+                  <p><strong>📂 Category:</strong> {result.item?.category}</p>
+                  <p><strong>🎨 Color:</strong> {result.item?.ai_analysis?.primary_color}
+                    {result.item?.ai_analysis?.secondary_color && result.item?.ai_analysis?.secondary_color !== 'None'
+                      ? ` / ${result.item.ai_analysis.secondary_color}` : ''}</p>
+                  <p><strong>🏪 Brand:</strong> {result.item?.ai_analysis?.brand || 'Unknown'}</p>
+                  <p><strong>🔧 Material:</strong> {result.item?.ai_analysis?.material || 'Unknown'}</p>
+                  <p><strong>📋 Condition:</strong> {result.item?.ai_analysis?.condition || 'N/A'}</p>
+                  {result.item?.ai_analysis?.ocr_text_found && result.item.ai_analysis.ocr_text_found !== 'None' && (
+                    <p><strong>📝 Text Detected:</strong> {result.item.ai_analysis.ocr_text_found}</p>
+                  )}
+                </div>
+                <div style={{
+                  marginTop: '0.75rem', padding: '0.75rem', background: '#FFF',
+                  borderRadius: '8px', border: '1px solid #E2E8F0'
+                }}>
+                  <p style={{ fontSize: '0.85rem', color: '#475569', fontStyle: 'italic' }}>
+                    &ldquo;{result.item?.description || result.item?.ai_analysis?.human_style_description}&rdquo;
                   </p>
+                </div>
+                {result.item?.ai_analysis?.searchable_tags?.length > 0 && (
+                  <div style={{ marginTop: '0.75rem', display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
+                    {result.item.ai_analysis.searchable_tags.map((tag, i) => (
+                      <span key={i} style={{
+                        background: '#CCFBF1', color: '#0D9488', padding: '0.2rem 0.6rem',
+                        borderRadius: '999px', fontSize: '0.75rem', fontWeight: 500
+                      }}>
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
                 )}
               </div>
 
-              {/* Match result */}
-              {matchResult.matches?.length > 0 ? (
+              {/* Matching Pipeline Results */}
+              <div style={{
+                background: '#F0F9FF', border: '1px solid #BAE6FD',
+                padding: '1rem', borderRadius: '10px', marginBottom: '1.25rem',
+                fontSize: '0.85rem', color: '#0369A1'
+              }}>
+                <strong>🔍 Matching Pipeline:</strong>
+                <p style={{ marginTop: '0.375rem' }}>
+                  Tier 1 (DB Filter): {result.matching?.tier1_candidates || 0} candidates →{' '}
+                  Tier 2 (Tag Match): {result.matching?.tier2_candidates || 0} candidates →{' '}
+                  Tier 3 (AI Judge): {result.matching?.final_matches || 0} match(es)
+                </p>
+              </div>
+
+              {/* Match Results */}
+              {result.matching?.matches?.length > 0 ? (
                 <div style={{
                   background: '#F0FDF4', border: '1px solid #BBF7D0',
                   padding: '1rem', borderRadius: '10px', color: '#15803D', marginBottom: '1.25rem'
                 }}>
-                  <strong>🎯 Found {matchResult.matches.length} potential match(es)!</strong>
-                  <p style={{ marginTop: '0.5rem', fontSize: '0.875rem' }}>
-                    The owner has been notified. You can connect with them via chat.
-                  </p>
+                  <strong>🎯 Found {result.matching.matches.length} potential match(es)!</strong>
+                  {result.matching.matches.map((match, idx) => (
+                    <div key={idx} style={{
+                      marginTop: '0.75rem', padding: '0.75rem', background: '#FFF',
+                      borderRadius: '8px', border: '1px solid #BBF7D0'
+                    }}>
+                      <p style={{ fontWeight: 600, color: '#166534' }}>
+                        Match #{idx + 1}: &ldquo;{match.lostItemName}&rdquo;
+                      </p>
+                      <p style={{ fontSize: '0.82rem', color: '#15803D', marginTop: '0.25rem' }}>
+                        Confidence: {match.confidence}% • Owner notified
+                      </p>
+                      <p style={{ fontSize: '0.8rem', color: '#475569', marginTop: '0.25rem' }}>
+                        {match.reasoning}
+                      </p>
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <div style={{
@@ -192,9 +291,10 @@ function FoundForm() {
                 </div>
               )}
 
+              {/* Action buttons */}
               <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
                 <button
-                  onClick={() => { setMatchResult(null); setFormData({ location: '', image: null }); }}
+                  onClick={() => { setResult(null); setFormData({ location: '', image: null }); setImagePreview(null); }}
                   style={{
                     padding: '0.75rem 1.5rem', background: '#F1F5F9', color: '#334155',
                     border: '1px solid #E2E8F0', borderRadius: '10px', fontWeight: 600,
@@ -203,8 +303,8 @@ function FoundForm() {
                 >
                   Report Another
                 </button>
-                <button onClick={() => router.push('/gallery')} className="btn-submit" style={{ width: 'auto', padding: '0.75rem 1.5rem' }}>
-                  View Gallery
+                <button onClick={() => router.push('/dashboard')} className="btn-submit" style={{ width: 'auto', padding: '0.75rem 1.5rem' }}>
+                  Dashboard
                 </button>
               </div>
             </div>

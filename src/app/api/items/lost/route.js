@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import connectDB from '@/lib/db';
 import LostItem from '@/models/LostItem';
+import { AIService } from '@/lib/ai-service';
+import { runReverseMatchingPipeline } from '@/lib/matching-engine';
 import fs from 'fs';
 import path from 'path';
 
@@ -18,17 +20,18 @@ export async function POST(request) {
     const itemName = formData.get('itemName');
     const description = formData.get('description');
     const location = formData.get('location') || 'Unknown';
+    const dateLost = formData.get('dateLost');
     const file = formData.get('image');
 
     // --- Validation ---
     if (!itemName || !description) {
       return NextResponse.json({ error: 'Item name and description are required' }, { status: 400 });
     }
-    if (description.length > 2000) {
-      return NextResponse.json({ error: 'Description is too long (max 2000 chars)' }, { status: 400 });
+    if (description.length > 5000) {
+      return NextResponse.json({ error: 'Description is too long (max 5000 chars)' }, { status: 400 });
     }
 
-    // --- Save image locally (upgrade to cloud storage for production) ---
+    // --- Save reference image locally (optional) ---
     let imageUrl = null;
     if (file && file.name && file.size > 0) {
       if (file.size > 10 * 1024 * 1024) {
@@ -48,19 +51,67 @@ export async function POST(request) {
       imageUrl = `/uploads/${filename}`;
     }
 
+    // --- Gemini AI: Compile Owner Profile (1 API call) ---
+    // Standardize the owner's text description + optional reference image into structured tags
+    const aiProfile = await AIService.compileLostProfile(description, itemName, imageUrl);
+
+    if (!aiProfile.success) {
+      console.error('[API] AI profile compilation failed:', aiProfile.error);
+    }
+
     await connectDB();
 
+    // --- Save the lost item with AI-standardized profile ---
     const newLostItem = await LostItem.create({
       item_name: itemName.trim(),
       description: description.trim(),
       location: location.trim(),
       image_url: imageUrl,
+      date_lost: dateLost ? new Date(dateLost) : new Date(),
+      category: aiProfile.success ? aiProfile.category : 'Other',
+      ai_profile: aiProfile.success ? {
+        item_type: aiProfile.item_type,
+        brand: aiProfile.brand,
+        primary_color: aiProfile.primary_color,
+        secondary_color: aiProfile.secondary_color,
+        material: aiProfile.material,
+        distinguishing_marks: aiProfile.distinguishing_marks,
+        searchable_tags: aiProfile.searchable_tags,
+      } : {},
       userId: session.user.id,
       email: session.user.email,
-      detected_objects: [],
     });
 
-    return NextResponse.json({ success: true, item: newLostItem, matchesFound: 0 }, { status: 201 });
+    // --- Run Reverse Matching: Check if any existing FOUND items match ---
+    let matchingResult = { matches: [], tier1Count: 0, tier2Count: 0 };
+    try {
+      matchingResult = await runReverseMatchingPipeline(newLostItem);
+    } catch (matchErr) {
+      console.error('[API] Reverse matching error (non-fatal):', matchErr);
+    }
+
+    return NextResponse.json({
+      success: true,
+      item: {
+        _id: newLostItem._id,
+        item_name: newLostItem.item_name,
+        description: newLostItem.description,
+        category: newLostItem.category,
+        location: newLostItem.location,
+        image_url: newLostItem.image_url,
+        ai_profile: newLostItem.ai_profile,
+      },
+      matching: {
+        matches: matchingResult.matches,
+        tier1_candidates: matchingResult.tier1Count,
+        tier2_candidates: matchingResult.tier2Count,
+        final_matches: matchingResult.matches.length,
+      },
+      message:
+        matchingResult.matches.length > 0
+          ? `🎯 Great news! We found ${matchingResult.matches.length} item(s) already in our system that may be yours!`
+          : '✅ Lost item reported successfully. We\'ll notify you instantly when a match is found.',
+    }, { status: 201 });
   } catch (error) {
     console.error('Lost item POST error:', error);
     return NextResponse.json({ error: 'Failed to report lost item' }, { status: 500 });
