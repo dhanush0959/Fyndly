@@ -1,79 +1,113 @@
 # 🔍 Fyndly
 
-**An AI-Powered Lost & Found Platform** designed for modern communities, residential buildings, and campuses. Fyndly removes the friction from reporting lost items by leveraging Vision AI to automatically analyze uploaded images, generate detailed descriptions, and seamlessly connect "finders" with "losers" in real-time.
+**Fyndly** is an AI-powered lost and found platform designed for communities, residential complexes, and college campuses. It makes finding lost belongings effortless using **Google Gemini AI** to automatically describe found items, match them with reported lost items, and verify true ownership.
 
+---
+
+## 🏗 How It Works (System Flow & Architecture)
+
+```
+┌─────────────────────────────────────────┐      ┌─────────────────────────────────────────┐
+│              FINDER FLOW                │      │               OWNER FLOW                │
+│  1. Upload Photo of found item          │      │  1. Describe lost item in detail        │
+│  2. Pick location (Library, Gym, etc.)  │      │  2. Upload reference photo (Optional)   │
+│  3. Zero typing required!               │      │  3. Pick location & date lost           │
+└────────────────────┬────────────────────┘      └────────────────────┬────────────────────┘
+                     │                                                │
+                     ▼                                                ▼
+┌─────────────────────────────────────────┐      ┌─────────────────────────────────────────┐
+│       AI PHOTO ANALYZER (GEMINI)        │      │          AI PROFILE COMPILER            │
+│  • Auto-detects item type, colors, brand│      │  • Extracts searchable tags from text   │
+│  • Reads text/IDs visible on the item   │      │  • Standardizes item features           │
+│  • Generates 3 secret verification Qs   │      │                                         │
+└────────────────────┬────────────────────┘      └────────────────────┬────────────────────┘
+                     │                                                │
+                     └────────────────────┬───────────────────────────┘
+                                          │
+                                          ▼
+                         ┌─────────────────────────────────┐
+                         │       SMART MATCHING ENGINE     │
+                         │                                 │
+                         │ Step 1: Database Pre-Filter     │ (Instant)
+                         │ Step 2: Tag & Feature Match     │ (Instant)
+                         │ Step 3: AI Visual Inspector     │ (Deep check)
+                         └────────────────┬────────────────┘
+                                          │
+                                          ▼
+                         ┌─────────────────────────────────┐
+                         │   OWNERSHIP VERIFICATION TEST   │
+                         │  • Claimant answers secret Qs   │
+                         │  • AI evaluates response        │
+                         │  • Direct chat unlocked         │
+                         └─────────────────────────────────┘
+```
+
+---
 
 ## ✨ Key Features
 
-- **🤖 AI-Powered Object Detection**: Upload a photo of a found item, and the AI automatically detects keywords, colors, and generates a detailed description.
-- **🎯 Smart Matching Algorithm**: Automatically compares newly reported found items against the database of lost items and alerts users when a high-confidence match is detected.
-- **💬 Real-Time In-App Chat**: Finders and owners can securely communicate directly within the app to arrange the return of the item.
-- **🎨 Premium UI/UX**: A state-of-the-art interface featuring a beautiful dark-mode glassmorphism aesthetic, powered by an Emerald Green and Deep Slate Blue color palette with smooth CSS micro-animations.
-- **🔐 Secure Authentication**: JWT-based login and registration system ensuring user data privacy.
+- 📸 **1-Click Found Upload**: Finders only upload a photo and pick a location — AI writes the entire description automatically.
+- 🤖 **AI Photo Analysis**: Google Gemini AI reads the uploaded photo to identify object type, brand, colors, condition, visible text (OCR), and generates secret verification questions.
+- 🎯 **3-Step Smart Matching**: Filters thousands of database items in seconds to find exact matches without wasting AI quota.
+- 🔐 **Anti-Fraud Ownership Test**: Before contact details are shared, the claimant must answer an AI-generated secret challenge question to prove it's really theirs.
+- 💬 **Private Messaging**: Verified owners and finders can securely chat within the app to arrange a safe return.
+
+---
 
 ## 🛠 Tech Stack
 
-- **Frontend:** Next.js 16 (App Router), React, vanilla CSS variables (for dynamic theming)
-- **Backend:** Next.js API Routes (Serverless Functions)
-- **Database:** MongoDB (via Mongoose)
-- **Styling:** Custom CSS Glassmorphism & UI Tokens
+- **Frontend**: Next.js 16 (App Router), React 19, Vanilla CSS
+- **Backend**: Next.js Serverless Route Handlers (Node.js)
+- **AI Vision Model**: Google Gemini API (`gemini-flash-latest`)
+- **Database**: MongoDB Atlas (Mongoose ODM)
+- **Auth**: NextAuth.js with encrypted passwords
 
-## 🚀 Getting Started
+---
 
-### Prerequisites
-Make sure you have [Node.js](https://nodejs.org/) installed on your machine.
+## 🚀 Quick Start
 
-### Installation
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/yourusername/fyndly.git
-   cd fyndly
-   ```
-
-2. **Install dependencies:**
-   ```bash
-   npm install
-   ```
-
-3. **Environment Setup:**
-   Create a `.env` file in the root directory and add the necessary environment variables:
-   ```env
-   MONGODB_URI=your_mongodb_connection_string
-   JWT_SECRET=your_super_secret_key
-   # Add any other required API keys (e.g., Vision AI)
-   ```
-
-4. **Run the Development Server:**
-   ```bash
-   npm run dev
-   ```
-   Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-## 🏗 Production Build
-
-To test or deploy the optimized production build of the application:
-
+### 1. Clone & Install Dependencies
 ```bash
-# Build the static and server-side components
-npm run build
-
-# Start the production server
-npm run start
+git clone https://github.com/dhanush0959/Fyndly.git
+cd Fyndly
+npm install
 ```
 
-## 📁 Project Structure
+### 2. Set Up Environment Variables
+Create a file named `.env.local` in the project root:
 
-- `/src/app`: Next.js App Router pages and API endpoints.
-- `/src/components`: Reusable React components (`Chat.js`, `Dashboard.js`, `FoundForm.js`, etc.).
-- `/src/components/styles`: Component-specific CSS files utilizing the global design system.
-- `/src/models`: Mongoose database schemas.
-- `/src/lib`: Helper functions and database connection logic.
-- `/public`: Static assets including the premium `emerald_bg.png` background.
+```env
+# MongoDB Connection
+MONGODB_URI=your_mongodb_connection_string
 
-## 🤝 Contributing
+# NextAuth Secret & URL
+NEXTAUTH_SECRET=your_secret_key
+NEXTAUTH_URL=http://localhost:3000
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+# Google Gemini API Key (Get a free key at https://aistudio.google.com/)
+GEMINI_API_KEY=your_gemini_api_key
+```
+
+### 3. Run Development Server
+```bash
+npm run dev
+```
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+---
+
+## 🌐 Deploying to Vercel
+
+1. Push your repository to GitHub.
+2. Import the repository into [Vercel](https://vercel.com).
+3. Go to **Project Settings → Environment Variables** and add:
+   - `GEMINI_API_KEY`
+   - `MONGODB_URI`
+   - `NEXTAUTH_SECRET`
+   - `NEXTAUTH_URL` (set to `https://your-app-name.vercel.app`)
+4. Click **Deploy**.
+
+---
 
 ## 📜 License
 
